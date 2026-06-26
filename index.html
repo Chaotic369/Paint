@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Whiteboard & Paint App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f3f4f6; overflow: hidden; }
+        .canvas-container { margin: 0 auto; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); border-radius: 8px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col font-sans">
+
+    <header class="bg-slate-900 text-white px-6 py-3 flex justify-between items-center shadow-md z-10">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-chalkboard-user text-cyan-400 text-2xl"></i>
+            <h1 class="text-xl font-bold tracking-wide">StudioCanvas Pro</h1>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="clearCanvas()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <i class="fa-solid fa-trash-can"></i> Clear Canvas
+            </button>
+            <button onclick="downloadCanvas()" class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <i class="fa-solid fa-download"></i> Export Board
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 relative overflow-hidden">
+        
+        <aside class="w-80 bg-white border-r border-gray-200 p-5 flex flex-col space-y-6 overflow-y-auto shadow-sm z-10">
+            
+            <div>
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Interactions</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-select" onclick="setMode('select')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border-2 border-cyan-500 bg-cyan-50 text-cyan-700 font-medium transition text-sm">
+                        <i class="fa-solid fa-arrow-pointer"></i> Edit / Move
+                    </button>
+                    <button id="btn-draw" onclick="setMode('draw')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border-2 border-gray-200 hover:border-gray-300 text-gray-700 font-medium transition text-sm">
+                        <i class="fa-solid fa-pen-line"></i> Free Draw
+                    </button>
+                </div>
+            </div>
+
+            <hr class="border-gray-100">
+
+            <div>
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Styling</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1 font-medium">Primary Color</label>
+                        <div class="flex items-center gap-3">
+                            <input type="color" id="color-picker" value="#06b6d4" class="w-10 h-10 border-0 rounded cursor-pointer">
+                            <span id="color-hex" class="text-sm text-gray-600 font-mono">#06b6d4</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1 font-medium">Brush / Border Size (<span id="brush-size-val">5</span>px)</label>
+                        <input type="range" id="brush-size" min="1" max="50" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-cyan-600">
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-gray-100">
+
+            <div>
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Add Geometry Shapes</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="addShape('rect')" class="flex items-center gap-2 py-2 px-3 border border-gray-200 hover:bg-gray-50 rounded-lg text-sm text-gray-700 transition">
+                        <i class="fa-regular fa-square text-lg text-gray-500"></i> Rectangle
+                    </button>
+                    <button onclick="addShape('circle')" class="flex items-center gap-2 py-2 px-3 border border-gray-200 hover:bg-gray-50 rounded-lg text-sm text-gray-700 transition">
+                        <i class="fa-regular fa-circle text-lg text-gray-500"></i> Circle
+                    </button>
+                    <button onclick="addShape('triangle')" class="flex items-center gap-2 py-2 px-3 border border-gray-200 hover:bg-gray-50 rounded-lg text-sm text-gray-700 transition">
+                        <i class="fa-solid fa-triangle-exclamation text-lg text-gray-500"></i> Triangle
+                    </button>
+                    <button onclick="addShape('line')" class="flex items-center gap-2 py-2 px-3 border border-gray-200 hover:bg-gray-50 rounded-lg text-sm text-gray-700 transition">
+                        <i class="fa-solid fa-minus text-lg text-gray-500"></i> Line
+                    </button>
+                </div>
+            </div>
+
+            <hr class="border-gray-100">
+
+            <div>
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Rich Media & Annotation</h3>
+                <div class="space-y-2">
+                    <button onclick="addText()" class="w-full flex items-center gap-2 py-2 px-3 border border-gray-200 hover:bg-gray-50 rounded-lg text-sm text-gray-700 transition">
+                        <i class="fa-solid fa-font text-gray-500"></i> Add Rich Text
+                    </button>
+                    
+                    <label class="w-full flex items-center gap-2 py-2 px-3 border border-gray-200 hover:bg-gray-50 rounded-lg text-sm text-gray-700 transition cursor-pointer">
+                        <i class="fa-solid fa-image text-gray-500"></i> Insert Image / GIF
+                        <input type="file" id="image-loader" accept="image/*" class="hidden">
+                    </label>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-2"><i class="fa-solid fa-info-circle"></i> Tip: Select any object and press <b>Delete</b> on your keyboard to remove it.</p>
+            </div>
+
+        </aside>
+
+        <main class="flex-1 flex items-center justify-center p-6 relative">
+            <div class="bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200">
+                <canvas id="whiteboard"></canvas>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let canvas;
+        let currentMode = 'select'; // select or draw
+
+        // Initialize Application Components on window load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Instantiate dynamic canvas sizing based on viewport window space available
+            const displayWidth = window.innerWidth - 360; 
+            const displayHeight = window.innerHeight - 120;
+
+            canvas = new fabric.Canvas('whiteboard', {
+                width: displayWidth,
+                height: displayHeight,
+                backgroundColor: '#ffffff',
+                isDrawingMode: false
+            });
+
+            // Initialize Event Listeners for UI sliders/controls
+            setupControlListeners();
+            setupKeyboardDelete();
+        });
+
+        // Toggle Application Modes (Object Selection vs Vector Drawing)
+        function setMode(mode) {
+            currentMode = mode;
+            const btnSelect = document.getElementById('btn-select');
+            const btnDraw = document.getElementById('btn-draw');
+
+            if (mode === 'draw') {
+                canvas.isDrawingMode = true;
+                btnDraw.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border-2 border-cyan-500 bg-cyan-50 text-cyan-700 font-medium transition text-sm";
+                btnSelect.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border-2 border-gray-200 hover:border-gray-300 text-gray-700 font-medium transition text-sm";
+            } else {
+                canvas.isDrawingMode = false;
+                btnSelect.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border-2 border-cyan-500 bg-cyan-50 text-cyan-700 font-medium transition text-sm";
+                btnDraw.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border-2 border-gray-200 hover:border-gray-300 text-gray-700 font-medium transition text-sm";
+            }
+        }
+
+        // Configure event callbacks for color wheels and sizing inputs
+        function setupControlListeners() {
+            const colorPicker = document.getElementById('color-picker');
+            const brushSize = document.getElementById('brush-size');
+            const brushSizeVal = document.getElementById('brush-size-val');
+            const colorHex = document.getElementById('color-hex');
+
+            // Handle styling changes for brush engine
+            colorPicker.addEventListener('input', (e) => {
+                const color = e.target.value;
+                colorHex.textContent = color;
+                canvas.freeDrawingBrush.color = color;
+            });
+
+            brushSize.addEventListener('input', (e) => {
+                const size = parseInt(e.target.value, 10);
+                brushSizeVal.textContent = size;
+                canvas.freeDrawingBrush.width = size;
+            });
+
+            // Handle file image insertion events
+            document.getElementById('image-loader').addEventListener('change', handleMediaUpload);
+
+            // Set initial defaults
+            canvas.freeDrawingBrush.color = colorPicker.value;
+            canvas.freeDrawingBrush.width = parseInt(brushSize.value, 10);
+        }
+
+        // Instantiates Vector Shapes into canvas view state hierarchy
+        function addShape(shapeType) {
+            setMode('select'); // Default back to move/edit mode when inserting elements
+            const color = document.getElementById('color-picker').value;
+            const strokeWidth = parseInt(document.getElementById('brush-size').value, 10);
+            
+            let shapeObject;
+            const config = {
+                left: canvas.width / 2 - 50,
+                top: canvas.height / 2 - 50,
+                fill: 'transparent',
+                stroke: color,
+                strokeWidth: strokeWidth,
+                cornerColor: '#06b6d4',
+                cornerSize: 8,
+                transparentCorners: false
+            };
+
+            switch(shapeType) {
+                case 'rect':
+                    shapeObject = new fabric.Rect({ ...config, width: 140, height: 90 });
+                    break;
+                case 'circle':
+                    shapeObject = new fabric.Circle({ ...config, radius: 60 });
+                    break;
+                case 'triangle':
+                    shapeObject = new fabric.Triangle({ ...config, width: 120, height: 100 });
+                    break;
+                case 'line':
+                    shapeObject = new fabric.Line([50, 50, 200, 50], {
+                        stroke: color,
+                        strokeWidth: strokeWidth,
+                        left: canvas.width / 2 - 75,
+                        top: canvas.height / 2
+                    });
+                    break;
+            }
+            
+            if (shapeObject) {
+                canvas.add(shapeObject);
+                canvas.setActiveObject(shapeObject);
+            }
+        }
+
+        // Instantiates editable rich text modules
+        function addText() {
+            setMode('select');
+            const color = document.getElementById('color-picker').value;
+            const textNode = new fabric.IText('Double click to edit text', {
+                left: canvas.width / 2 - 100,
+                top: canvas.height / 2 - 20,
+                fontFamily: 'sans-serif',
+                fill: color,
+                fontSize: 24,
+                cornerColor: '#06b6d4'
+            });
+            canvas.add(textNode);
+            canvas.setActiveObject(textNode);
+        }
+
+        // Media Stream Processing: Standard Images and Web-Agnostic Assets (including GIFs)
+        function handleMediaUpload(e) {
+            setMode('select');
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const imgObj = new Image();
+                imgObj.src = event.target.result;
+                
+                imgObj.onload = function() {
+                    const fabricImg = new fabric.Image(imgObj);
+                    // Scale element down if bounding dimensions overshoot the board limits
+                    if (fabricImg.width > canvas.width * 0.6) {
+                        fabricImg.scaleToWidth(canvas.width * 0.5);
+                    }
+                    fabricImg.set({
+                        left: canvas.width / 2 - (fabricImg.getScaledWidth() / 2),
+                        top: canvas.height / 2 - (fabricImg.getScaledHeight() / 2),
+                        cornerColor: '#06b6d4',
+                        cornerSize: 8
+                    });
+                    canvas.add(fabricImg);
+                    canvas.setActiveObject(fabricImg);
+                    canvas.renderAll();
+                }
+            };
+            reader.readAsDataURL(file);
+            // Reset standard input value sequence so the same asset can be pulled multiple times
+            e.target.value = '';
+        }
+
+        // Global Event Hook to listen to native hardware delete keys 
+        function setupKeyboardDelete() {
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    // Avoid firing delete if user is currently typing within a text object
+                    const activeObject = canvas.getActiveObject();
+                    if (activeObject && (!activeObject.isEditing)) {
+                        canvas.remove(activeObject);
+                        canvas.discardActiveObject();
+                        canvas.renderAll();
+                    }
+                }
+            });
+        }
+
+        // Resets current canvas board viewport back to native blank array
+        function clearCanvas() {
+            if(confirm("Are you sure you want to clear your whiteboard? All unsaved work will be lost.")) {
+                canvas.clear();
+                canvas.setBackgroundColor('#ffffff', canvas.renderAll.bind(canvas));
+            }
+        }
+
+        // Exports current canvas data state out to a downloadable PNG file
+        function downloadCanvas() {
+            const dataURL = canvas.toDataURL({
+                format: 'png',
+                quality: 1.0
+            });
+            const downloadLink = document.createElement('a');
+            downloadLink.href = dataURL;
+            downloadLink.download = 'whiteboard-export.png';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    </script>
+</body>
+</html>
